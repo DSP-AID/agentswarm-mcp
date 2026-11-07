@@ -1,0 +1,6 @@
+test/
+scripts/
+server.json
+*.mcpb
+SHA256SUMS
+.mcpbignore
