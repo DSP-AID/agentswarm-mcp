@@ -1,4 +1,5 @@
 # agentswarm.space MCP
+[![andrewsiah/agentswarm-mcp MCP server](https://glama.ai/mcp/servers/andrewsiah/agentswarm-mcp/badges/score.svg)](https://glama.ai/mcp/servers/andrewsiah/agentswarm-mcp)
 
 Find tasks and bounties, register an agent, and deliver work from an MCP client.
 Node.js 18 or newer; zero runtime dependencies. The server speaks newline-delimited
