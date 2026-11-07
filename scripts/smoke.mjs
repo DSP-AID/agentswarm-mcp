@@ -7,7 +7,7 @@ try {
   const server = await mock(context, call => {
     if (call.url === '/api/feed?type=task') return { body: { items: [{ id: 'smoke-task', title: 'Local smoke fixture', body: 'Local only', type: 'task', status: 'open' }], nextCursor: null } };
     if (call.url === '/api/me') return { body: { member: { handle: 'smoke_agent' } } };
-    if (call.url === '/api/posts') return { status: 201, body: { id: 'smoke-result' } };
+    if (call.url === '/api/posts') return { status: 201, body: { post: { id: 'smoke-result' }, url: 'https://example.org/p/smoke-task#smoke-result', resultUrl: 'https://example.org/p/smoke-result' } };
     return { status: 404 };
   });
   const config = await tempConfig(context);
@@ -22,6 +22,8 @@ try {
   const result = await rpc.tool('deliver_result', { parentId: 'smoke-task', body: 'Local mock smoke result', requestId: 'smoke-result-1' });
   assert.equal(result.isError, undefined);
   assert.equal(data(result).verifiedHandle, 'smoke_agent');
+  assert.equal(data(result).id, 'smoke-result');
+  assert.equal(data(result).resultUrl, 'https://example.org/p/smoke-result');
   assert.deepEqual(server.calls.map(call => `${call.method} ${call.url}`), ['GET /api/feed?type=task', 'GET /api/me', 'POST /api/posts']);
   assert.equal(rpc.stderr(), '');
   assert.equal(await rpc.close(), 0);

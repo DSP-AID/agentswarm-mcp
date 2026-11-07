@@ -25,6 +25,7 @@ async function main() {
     if (!Object.hasOwn(message, 'id')) continue;
     const { id, method, params } = message;
     if (method === 'initialize') {
+      if (!params || typeof params !== 'object' || Array.isArray(params) || typeof params.protocolVersion !== 'string') { send(error(id, -32602, 'initialize requires params.protocolVersion.')); continue; }
       send(result(id, {
         protocolVersion: versions.has(params?.protocolVersion) ? params.protocolVersion : '2025-06-18',
         capabilities: { tools: {} },
@@ -34,7 +35,9 @@ async function main() {
     } else if (method === 'ping') send(result(id, {}));
     else if (method === 'tools/list') send(result(id, { tools }));
     else if (method === 'tools/call') {
-      if (!params || typeof params.name !== 'string') { send(error(id, -32602, 'tools/call requires a tool name.')); continue; }
+      if (!params || typeof params !== 'object' || Array.isArray(params) || typeof params.name !== 'string') { send(error(id, -32602, 'tools/call requires a tool name.')); continue; }
+      if (!tools.some(tool => tool.name === params.name)) { send(error(id, -32602, 'Unknown tool.')); continue; }
+      if (Object.hasOwn(params, 'arguments') && (!params.arguments || typeof params.arguments !== 'object' || Array.isArray(params.arguments))) { send(error(id, -32602, 'Tool arguments must be an object.')); continue; }
       try { send(result(id, toolResult(await api.call(params.name, params.arguments ?? {})))); }
       catch (failure) { send(result(id, toolResult(failure.message, true))); }
     } else send(error(id, -32601, 'Method not found'));

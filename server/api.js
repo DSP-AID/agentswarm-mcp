@@ -57,8 +57,8 @@ function validate(schema, value, name = 'arguments') {
 const cut = (value, max = 4000) => typeof value === 'string' ? value.length > max ? value.slice(0, max) + '… [truncated]' : value : value;
 const select = (object, keys) => Object.fromEntries(keys.filter(key => object?.[key] !== undefined).map(key => [key, cut(object[key])]));
 const rewardView = b => b ? select(b, ['reward', 'amountUsd', 'netUsd', 'feeUsd', 'status', 'sourceUrl', 'deadline', 'submissionsCloseAt', 'splitRule']) : null;
-const payer = p => p.paidBy ?? (p.bounty?.amountUsd !== undefined ? 'escrow' : p.reward ? 'shared' : p.bounty?.sourceUrl ? 'source' : p.bounty ? 'poster' : null);
-const summary = p => ({ ...select(p, ['id', 'title', 'status']), bounty: rewardView(p.bounty), paidBy: payer(p) });
+const payer = p => p.paidBy ?? (p.bounty?.amountUsd != null ? 'escrow' : p.reward ? 'shared' : typeof p.bounty?.sourceUrl === 'string' ? 'source' : p.bounty?.sourceUrl === null ? 'poster' : 'unknown');
+const summary = (p, paidBy = payer(p)) => ({ ...select(p, ['id', 'title', 'status']), bounty: rewardView(p.bounty), paidBy });
 class HttpError extends Error {
   constructor(status) { super(`API request failed (HTTP ${status}). No automatic retry was made.`); this.status = status; }
 }
@@ -166,7 +166,7 @@ export function createApi(env = process.env) {
       const page = await request('/api/feed?type=task', { auth });
       if (!Array.isArray(page.items)) throw new Error('Invalid feed response.');
       const query = (args.query ?? '').toLowerCase();
-      return { tasks: page.items.filter(p => `${p.title ?? ''}\n${p.body ?? ''}`.toLowerCase().includes(query)).slice(0, args.limit ?? 20).map(summary), nextCursor: page.nextCursor ?? null, scope: 'Query and limit apply only to the fetched feed page. Bounties are tasks with rewards; use list_bounties for paid opportunities.' };
+      return { tasks: page.items.filter(p => `${p.title ?? ''}\n${p.body ?? ''}`.toLowerCase().includes(query)).slice(0, args.limit ?? 20).map(p => summary(p, p.paidBy ?? 'unknown (see get_task or list_bounties)')), nextCursor: page.nextCursor ?? null, scope: 'Query and limit apply only to the fetched feed page. Bounties are tasks with rewards; use list_bounties for paid opportunities.' };
     }
     if (name === 'list_bounties') {
       const page = await request('/api/bounties', { auth });
@@ -182,9 +182,11 @@ export function createApi(env = process.env) {
     const rid = args.requestId ?? randomUUID();
     const body = { parentId: args.parentId, body: args.body, requestId: rid, ...(name === 'deliver_result' ? { type: 'result' } : {}) };
     let posted;
-    try { posted = await request('/api/posts', { method: 'POST', body, auth: { ...auth, handle } }); }
-    catch (error) { throw new Error(`${error.message} requestId: ${rid}. Reuse this requestId when retrying the same write.`); }
-    return { verifiedHandle: handle, requestId: rid, ...select(posted, ['id', 'url', 'resultUrl', 'replayed']), message: name === 'deliver_result' ? 'Result submitted. Submission is not acceptance.' : 'Question posted as a reply.' };
+    try {
+      posted = await request('/api/posts', { method: 'POST', body, auth: { ...auth, handle } });
+      if (typeof posted?.post?.id !== 'string' || !posted.post.id.trim()) throw new Error('Invalid post response; reconcile any uncertain write before retrying.');
+    } catch (error) { throw new Error(`${error.message} requestId: ${rid}. Reuse this requestId when retrying the same write.`); }
+    return { verifiedHandle: handle, requestId: rid, id: posted.post.id, ...select(posted, ['url', 'resultUrl', 'replayed']), message: name === 'deliver_result' ? 'Result submitted. Submission is not acceptance.' : 'Question posted as a reply.' };
   }
   return { call };
 }
