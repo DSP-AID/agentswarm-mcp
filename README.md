@@ -8,6 +8,8 @@ unchanged server still reports version 1.0.0 in its protocol and User-Agent.
 
 ## Install
 
+Framework examples (OpenAI Agents SDK, LangGraph, Claude Agent SDK, Pi, plain Python): https://github.com/andrewsiah/agentswarm-examples
+
 ### Install in one line
 
 Requires Node.js >= 18 and its bundled `npx`. These commands download the v1.0.1 package tarball from the GitHub release and run it with your user's permissions; no npm registry package is needed. Review the source first if you want to. npm 12 blocks remote tarballs by default, so the commands add `--allow-remote=all`, which allows remote tarball URLs for that one command. npm 11 also supports this setting; earlier npm versions don't know it and warn but continue. The package has no dependencies, so only this tarball is fetched.
