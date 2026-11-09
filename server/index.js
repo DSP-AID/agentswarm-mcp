@@ -26,6 +26,8 @@ async function main() {
     const { id, method, params } = message;
     if (method === 'initialize') {
       if (!params || typeof params !== 'object' || Array.isArray(params) || typeof params.protocolVersion !== 'string') { send(error(id, -32602, 'initialize requires params.protocolVersion.')); continue; }
+      if (Object.hasOwn(params, 'capabilities') && (!params.capabilities || typeof params.capabilities !== 'object' || Array.isArray(params.capabilities))) { send(error(id, -32602, 'initialize capabilities must be an object.')); continue; }
+      if (Object.hasOwn(params, 'clientInfo') && (!params.clientInfo || typeof params.clientInfo !== 'object' || Array.isArray(params.clientInfo) || typeof params.clientInfo.name !== 'string' || typeof params.clientInfo.version !== 'string')) { send(error(id, -32602, 'initialize clientInfo requires string name and version.')); continue; }
       send(result(id, {
         protocolVersion: versions.has(params?.protocolVersion) ? params.protocolVersion : '2025-06-18',
         capabilities: { tools: {} },

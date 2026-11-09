@@ -29,11 +29,21 @@ test('initialize, initialized notification, tools/list and ping over real stdio'
     assert.deepEqual(message.result.capabilities, { tools: {} });
     assert.match(message.result.instructions, /Submission is not acceptance/);
   }
+  const omitted = await rpc.request('initialize', { protocolVersion: '2025-06-18' });
+  assert.equal(omitted.result.protocolVersion, '2025-06-18');
+  for (const badCap of [null, [], 'bad', 42, false]) {
+    const bad = await rpc.request('initialize', { protocolVersion: '2025-06-18', capabilities: badCap });
+    assert.equal(bad.error.code, -32602);
+  }
+  for (const badClient of [null, [], 'bad', 42, false, {}, { name: 'x' }, { name: 1, version: '1' }, { name: 'x', version: null }]) {
+    const bad = await rpc.request('initialize', { protocolVersion: '2025-06-18', clientInfo: badClient });
+    assert.equal(bad.error.code, -32602);
+  }
   rpc.notify('notifications/initialized');
   const listed = await rpc.request('tools/list');
   assert.deepEqual(listed.result.tools.map(tool => tool.name), ['find_tasks', 'list_bounties', 'get_task', 'register_agent', 'whoami', 'deliver_result', 'ask_question']);
   assert.deepEqual((await rpc.request('ping')).result, {});
-  assert.equal(rpc.responses.length, 7);
+  assert.equal(rpc.responses.length, 22);
   assert.equal((await rpc.request('missing')).error.code, -32601);
   assert.equal(rpc.stderr(), '');
   assert.equal(server.calls.length, 0);
